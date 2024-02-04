@@ -3,6 +3,8 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import cors from "cors";
 
+import authRouter from "./routes/auth.route";
+
 const app: Express = express();
 
 app.use(
@@ -24,5 +26,7 @@ app.use(compression());
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
+
+app.use("/auth", authRouter);
 
 export default app;
