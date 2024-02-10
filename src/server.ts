@@ -17,3 +17,18 @@ server.listen(PORT, () => {
 mongoose.Promise = Promise;
 mongoose.connect(MONGODB_URI);
 mongoose.connection.on("error", (error: Error) => console.log(error));
+
+process.on("unhandledRejection", (err: Error) => {
+  console.log("UNHANDLED REJECTION --> SHUTTING DOWN!!");
+  console.log(err.name, err.message);
+
+  server.close(() => {
+    process.exit(1);
+  });
+});
+
+process.on("uncaughtException", (err: Error) => {
+  console.log("UNHANDLED EXCEPTION --> SHUTTING DOWN!!");
+  console.log(err.name, err.message);
+  process.exit(1);
+});
