@@ -1,9 +1,10 @@
 import express from "express";
 
-import { create } from "../controllers/auth.controller";
+import { create, login } from "../controllers/auth.controller";
 
-const authRouter = express.Router();
+const router = express.Router();
 
-authRouter.get("/create", create);
+router.get("/create", create);
+router.get("/login", login);
 
-export default authRouter;
+export default router;
