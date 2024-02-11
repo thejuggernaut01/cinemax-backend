@@ -2,6 +2,9 @@ import express, { Express } from "express";
 import cookieParser from "cookie-parser";
 import compression from "compression";
 import cors from "cors";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 import authRouter from "./routes/auth.route";
 
