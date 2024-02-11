@@ -1,14 +1,18 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-import User from "models/user.model";
+import User from "../models/user.model";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
 
 const ACCESS_TOKEN_EXPIRES_IN = process.env.ACCESS_TOKEN_EXPIRES_IN as string;
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN as string;
+
+type DecodedType = {
+  [key: string]: string | number;
+};
 
 export const create = async (req: Request, res: Response) => {
   const { firstName, lastName, email, password } = req.body;
@@ -28,8 +32,8 @@ export const create = async (req: Request, res: Response) => {
       .json({ status: "An error occured", message: "Email is already in use" });
   }
 
-  const hashedPassword = bcrypt.hash(password, 12);
-  const newUser = await User.create({
+  const hashedPassword = await bcrypt.hash(password, 12);
+  await User.create({
     firstName,
     lastName,
     email,
@@ -38,7 +42,6 @@ export const create = async (req: Request, res: Response) => {
 
   return res.status(201).json({
     message: "Your account was successfully created!",
-    data: newUser,
   });
 };
 
@@ -63,11 +66,11 @@ export const login = async (req: Request, res: Response) => {
   }
 
   // create tokens (access & refresh)
-  const accessToken = jwt.sign({ email }, ACCESS_TOKEN_SECRET, {
+  const accessToken = jwt.sign({ _id: user._id }, ACCESS_TOKEN_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRES_IN,
   });
 
-  const refreshToken = jwt.sign({ email }, REFRESH_TOKEN_SECRET, {
+  const refreshToken = jwt.sign({ _id: user._id }, REFRESH_TOKEN_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRES_IN,
   });
 
@@ -94,7 +97,106 @@ export const login = async (req: Request, res: Response) => {
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 
-  return res.status(200).json({ message: "Login successfully!" });
+  const { password: _, ...rest } = user.toObject();
+
+  return res.status(200).json({ message: "Login successfully!", data: rest });
 };
 
-export const protect = async (req: Request, res: Response) => {};
+export const protect = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<Response | void> => {
+  const accessToken = req.cookies["access-token"];
+  const refreshToken = req.cookies["refresh-token"];
+
+  // check if refresh token doesn't exist
+  if (!refreshToken) {
+    return res.status(403).json({
+      message: "Unauthorized",
+    });
+  }
+
+  // check decoded access token against the database
+  // to ensure that the associated user exists and
+  // is authorized to access the protected resource.
+
+  const handleDecoded = async (decoded: DecodedType) => {
+    const user = await User.findOne({ _id: decoded._id }).select(
+      "+refreshToken"
+    );
+
+    // if user doesn't exist
+    if (!user) {
+      return res.status(400).json({
+        status: "Error",
+        message: "Unauthorized",
+      });
+    }
+
+    // if refresh token is invalid
+    if (user.refreshToken !== refreshToken) {
+      return res
+        .status(400)
+        .json({ status: "Error", message: "Unauthorized - Invalid token" });
+    }
+
+    // if user changed password
+
+    const { refreshToken: _, ...rest } = user.toObject();
+    return rest;
+  };
+
+  try {
+    // verify access token
+    const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET) as DecodedType;
+
+    await handleDecoded(decoded);
+  } catch (error) {
+    //  if error in verifying access token
+    if (
+      error.name === "JsonWebTokenError" ||
+      (error.name === "TokenExpiredError" && refreshToken)
+    ) {
+      try {
+        // verify refreshToken
+        const decoded = jwt.verify(
+          refreshToken,
+          REFRESH_TOKEN_SECRET
+        ) as DecodedType;
+
+        const decodedUser = await handleDecoded(decoded);
+
+        if (decodedUser && "_id" in decodedUser) {
+          const currentUser = decodedUser;
+
+          // create new access token
+          const accessToken = jwt.sign(
+            { _id: currentUser._id },
+            ACCESS_TOKEN_SECRET,
+            {
+              expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+            }
+          );
+
+          // check if in production mode
+          const isProduction = process.env.NODE_ENV === "production";
+
+          // store token (access & refresh)
+          res.cookie("access-token", accessToken, {
+            secure: isProduction ? true : false,
+            httpOnly: isProduction ? true : false,
+            path: "/",
+            sameSite: isProduction ? "none" : "lax",
+            maxAge: 15 * 60 * 1000, // 15 minutes
+          });
+        }
+      } catch (error) {
+        console.log(error);
+        return res.status(400).json({ message: "Unauthorized" });
+      }
+    }
+  }
+
+  next();
+};
