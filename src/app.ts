@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import authRouter from "./routes/auth.route";
+import movieRouter from "./routes/movie.route";
 
 const app: Express = express();
 
@@ -31,5 +32,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/auth", authRouter);
+
+app.use("/", movieRouter);
 
 export default app;

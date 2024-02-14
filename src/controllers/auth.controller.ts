@@ -143,7 +143,8 @@ export const protect = async (
 
     // if user changed password
 
-    const { refreshToken: _, ...rest } = user.toObject();
+    const { refreshToken: _, ...rest } = user;
+
     return rest;
   };
 
@@ -192,8 +193,9 @@ export const protect = async (
           });
         }
       } catch (error) {
-        console.log(error);
-        return res.status(400).json({ message: "Unauthorized" });
+        return res
+          .status(400)
+          .json({ status: "Error", message: "Unauthorized" });
       }
     }
   }
