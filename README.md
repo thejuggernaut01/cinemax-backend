@@ -1,12 +1,10 @@
-
 # Cinemax Backend
 
-Cinemax is an innovative and user-friendly platform designed to enhance the movie-going experience by providing a seamless and convenient way for users to purchase movie tickets. 
-
+Cinemax is an innovative and user-friendly platform designed to enhance the movie-going experience by providing a seamless and convenient way for users to purchase movie tickets.
 
 ## Tech Stack
 
-**Backend:** Node.js, Express.js
+**Backend:** Node.js, Express.js, Typescript
 
 **Database:** Mongodb
 
@@ -40,8 +38,6 @@ Start the server
   npm start
 ```
 
-
-## Authors
+## Developer
 
 - [@thejuggernaut01](https://www.github.com/thejuggernaut01)
-
