@@ -3,10 +3,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import User from "../models/user.model";
-import verificationEmail from "common/utils/verifications/email/verificationEmail";
-import { CustomRequest } from "common/interfaces/authInterface";
-import welcomeEmail from "common/utils/verifications/email/welcomeEmail";
-import forgotPasswordEmail from "common/utils/verifications/email/forgotPasswordEmail";
+import verificationEmail from "../common/utils/verifications/email/verificationEmail";
+import { CustomRequest } from "../common/interfaces/authInterface";
+import welcomeEmail from "../common/utils/verifications/email/welcomeEmail";
+import forgotPasswordEmail from "../common/utils/verifications/email/forgotPasswordEmail";
 
 const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
